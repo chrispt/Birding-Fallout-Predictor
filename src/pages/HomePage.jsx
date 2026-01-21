@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import FalloutMap from '../components/map/FalloutMap'
 import PredictionCard from '../components/predictions/PredictionCard'
 import WeatherPanel from '../components/weather/WeatherPanel'
@@ -9,7 +10,15 @@ import { formatCoords } from '../utils/formatting'
 import { FALLOUT_HOTSPOTS } from '../services/hotspots'
 
 function HomePage() {
+  const location = useLocation()
   const [selectedLocation, setSelectedLocation] = useState(null)
+
+  // Handle navigation from Trip Planner with location state
+  useEffect(() => {
+    if (location.state?.lat && location.state?.lon) {
+      setSelectedLocation({ lat: location.state.lat, lon: location.state.lon })
+    }
+  }, [location.state])
   const [expandedPrediction, setExpandedPrediction] = useState(null)
 
   const { predictions, loading: predictionsLoading, error: predictionsError } =

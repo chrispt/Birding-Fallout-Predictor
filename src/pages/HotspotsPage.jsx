@@ -268,6 +268,21 @@ function HotspotsPage() {
                       />
                     ))}
                   </div>
+                  {/* eBird Attribution - Required by Terms of Use */}
+                  <div className="mt-6 p-3 bg-gray-50 rounded-lg text-center">
+                    <p className="text-xs text-gray-500">
+                      Hotspot data provided by{' '}
+                      <a
+                        href="https://ebird.org"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline font-medium"
+                      >
+                        eBird.org
+                      </a>
+                      , a project of the Cornell Lab of Ornithology
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

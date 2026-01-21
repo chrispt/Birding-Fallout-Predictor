@@ -6,6 +6,7 @@ function Header() {
   const navLinks = [
     { path: '/', label: 'Dashboard' },
     { path: '/planner', label: 'Trip Planner' },
+    { path: '/hotspots', label: 'Hotspots' },
     { path: '/map', label: 'Map' }
   ]
 

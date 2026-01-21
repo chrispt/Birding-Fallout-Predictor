@@ -3,6 +3,7 @@ import Header from './components/common/Header'
 import HomePage from './pages/HomePage'
 import MapPage from './pages/MapPage'
 import TripPlannerPage from './pages/TripPlannerPage'
+import HotspotsPage from './pages/HotspotsPage'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/planner" element={<TripPlannerPage />} />
+          <Route path="/hotspots" element={<HotspotsPage />} />
         </Routes>
       </main>
     </div>

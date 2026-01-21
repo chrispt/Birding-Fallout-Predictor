@@ -2,10 +2,32 @@
 // API documentation: https://documenter.getpostman.com/view/664302/S1ENwy59
 
 const EBIRD_API_URL = 'https://api.ebird.org/v2'
+const REQUEST_TIMEOUT_MS = 10000
 
 // Get API key from environment variable
 function getApiKey() {
   return import.meta.env.VITE_EBIRD_API_KEY || ''
+}
+
+// Helper to make fetch requests with timeout
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    })
+    clearTimeout(timeoutId)
+    return response
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error.name === 'AbortError') {
+      throw new Error('eBird API request timed out')
+    }
+    throw error
+  }
 }
 
 // Check if eBird API is configured
@@ -27,7 +49,7 @@ export async function fetchNearbyHotspots(lat, lon, distKm = 50, maxResults = 50
     fmt: 'json'
   })
 
-  const response = await fetch(`${EBIRD_API_URL}/ref/hotspot/geo?${params}`, {
+  const response = await fetchWithTimeout(`${EBIRD_API_URL}/ref/hotspot/geo?${params}`, {
     headers: {
       'X-eBirdApiToken': apiKey
     }
@@ -67,7 +89,7 @@ export async function fetchRegionHotspots(regionCode, maxResults = 100) {
     fmt: 'json'
   })
 
-  const response = await fetch(`${EBIRD_API_URL}/ref/hotspot/${regionCode}?${params}`, {
+  const response = await fetchWithTimeout(`${EBIRD_API_URL}/ref/hotspot/${regionCode}?${params}`, {
     headers: {
       'X-eBirdApiToken': apiKey
     }

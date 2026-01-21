@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useHotspots } from '../hooks/useHotspots'
 import { getRegions, getStates } from '../services/hotspots'
@@ -304,7 +304,7 @@ function HotspotsPage() {
   )
 }
 
-function HotspotCard({ hotspot, onSelect, onDelete, showDelete = false, showSpeciesCount = false }) {
+const HotspotCard = memo(function HotspotCard({ hotspot, onSelect, onDelete, showDelete = false, showSpeciesCount = false }) {
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200 p-4 hover:shadow-md transition-shadow">
       <div className="flex justify-between items-start">
@@ -346,7 +346,7 @@ function HotspotCard({ hotspot, onSelect, onDelete, showDelete = false, showSpec
       </div>
     </div>
   )
-}
+})
 
 function AddLocationModal({ onClose, onAdd }) {
   const [name, setName] = useState('')

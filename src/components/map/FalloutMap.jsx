@@ -11,9 +11,22 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png'
 })
 
+// Sanitize a value to be safe for HTML attribute/content
+function sanitizeForHtml(value) {
+  if (typeof value !== 'string' && typeof value !== 'number') return ''
+  return String(value).replace(/[<>"'&]/g, char => ({
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '&': '&amp;'
+  }[char]))
+}
+
 // Create a colored circle marker icon
 function createScoreMarker(score) {
   const color = getScoreColor(score)
+  const safeScore = sanitizeForHtml(score)
   return L.divIcon({
     className: 'custom-marker',
     html: `
@@ -30,7 +43,7 @@ function createScoreMarker(score) {
         color: white;
         font-size: 10px;
         font-weight: bold;
-      ">${score}</div>
+      ">${safeScore}</div>
     `,
     iconSize: [24, 24],
     iconAnchor: [12, 12]

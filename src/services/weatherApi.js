@@ -1,6 +1,8 @@
 // Direct Open-Meteo API calls (no backend needed)
 
 const OPEN_METEO_URL = 'https://api.open-meteo.com/v1/forecast'
+const REQUEST_TIMEOUT_MS = 10000
+const CACHE_TTL_MS = 15 * 60 * 1000 // 15 minutes
 
 const HOURLY_VARIABLES = [
   'temperature_2m',
@@ -17,7 +19,33 @@ const HOURLY_VARIABLES = [
   'wind_gusts_10m'
 ]
 
+// In-memory cache for weather data
+const weatherCache = new Map()
+
+function getCacheKey(lat, lon, days) {
+  // Round coordinates to 2 decimal places for cache key
+  return `${lat.toFixed(2)},${lon.toFixed(2)},${days}`
+}
+
+function getCachedData(key) {
+  const cached = weatherCache.get(key)
+  if (!cached) return null
+  if (Date.now() - cached.timestamp > CACHE_TTL_MS) {
+    weatherCache.delete(key)
+    return null
+  }
+  return cached.data
+}
+
+function setCachedData(key, data) {
+  weatherCache.set(key, { data, timestamp: Date.now() })
+}
+
 export async function fetchWeatherForecast(lat, lon, days = 7) {
+  const cacheKey = getCacheKey(lat, lon, days)
+  const cached = getCachedData(cacheKey)
+  if (cached) return cached
+
   const params = new URLSearchParams({
     latitude: lat,
     longitude: lon,
@@ -26,11 +54,28 @@ export async function fetchWeatherForecast(lat, lon, days = 7) {
     timezone: 'UTC'
   })
 
-  const response = await fetch(`${OPEN_METEO_URL}?${params}`)
-  if (!response.ok) throw new Error('Failed to fetch weather data')
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
-  const data = await response.json()
-  return parseAndAddDeltas(data)
+  try {
+    const response = await fetch(`${OPEN_METEO_URL}?${params}`, {
+      signal: controller.signal
+    })
+    clearTimeout(timeoutId)
+
+    if (!response.ok) throw new Error('Failed to fetch weather data')
+
+    const data = await response.json()
+    const result = parseAndAddDeltas(data)
+    setCachedData(cacheKey, result)
+    return result
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error.name === 'AbortError') {
+      throw new Error('Weather request timed out')
+    }
+    throw error
+  }
 }
 
 function parseAndAddDeltas(data) {

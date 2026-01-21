@@ -28,7 +28,7 @@ export function addCustomLocation(location) {
   const locations = getCustomLocations()
 
   // Generate unique ID
-  const id = `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  const id = `custom-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
 
   const newLocation = {
     ...location,

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { getScoreColor } from '../../utils/colors'
 import { formatDate } from '../../utils/formatting'
+import { getFactorMaxScore } from '../../constants/falloutFactors'
 
 function CellDetailPopup({ cell, onClose }) {
   const navigate = useNavigate()
@@ -70,7 +71,7 @@ function CellDetailPopup({ cell, onClose }) {
                     <div
                       className="h-full rounded-full"
                       style={{
-                        width: `${(factor.score / getMaxScore(key)) * 100}%`,
+                        width: `${(factor.score / getFactorMaxScore(key)) * 100}%`,
                         backgroundColor: getScoreColor(factor.score * 3)
                       }}
                     />
@@ -119,17 +120,6 @@ function CellDetailPopup({ cell, onClose }) {
       </div>
     </div>
   )
-}
-
-function getMaxScore(factorKey) {
-  const maxScores = {
-    front: 30,
-    wind: 25,
-    precipitation: 20,
-    pressure: 10,
-    visibility: 10
-  }
-  return maxScores[factorKey] || 30
 }
 
 export default CellDetailPopup

@@ -1,3 +1,5 @@
+import { FALLOUT_FACTORS } from '../../constants/falloutFactors'
+
 function FactorBar({ label, score, maxScore, description }) {
   const percentage = (score / maxScore) * 100
 
@@ -21,23 +23,14 @@ function FactorBar({ label, score, maxScore, description }) {
 }
 
 function FactorBreakdown({ factors, showDescriptions = false }) {
-  const factorConfig = [
-    { key: 'front', label: 'Front Passage', max: 30 },
-    { key: 'wind', label: 'Wind', max: 25 },
-    { key: 'precipitation', label: 'Precipitation', max: 20 },
-    { key: 'pressure', label: 'Pressure', max: 10 },
-    { key: 'visibility', label: 'Visibility', max: 10 },
-    { key: 'temperature', label: 'Temperature', max: 5 }
-  ]
-
   return (
     <div className="space-y-1">
-      {factorConfig.map(({ key, label, max }) => (
+      {FALLOUT_FACTORS.map(({ key, label, maxScore }) => (
         <FactorBar
           key={key}
           label={label}
           score={factors[key]?.score || 0}
-          maxScore={max}
+          maxScore={maxScore}
           description={showDescriptions ? factors[key]?.description : null}
         />
       ))}

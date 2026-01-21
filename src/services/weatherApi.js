@@ -24,7 +24,7 @@ const weatherCache = new Map()
 
 function getCacheKey(lat, lon, days) {
   // Round coordinates to 2 decimal places for cache key
-  return `${lat.toFixed(2)},${lon.toFixed(2)},${days}`
+  return `${Number(lat).toFixed(2)},${Number(lon).toFixed(2)},${days}`
 }
 
 function getCachedData(key) {
@@ -42,6 +42,10 @@ function setCachedData(key, data) {
 }
 
 export async function fetchWeatherForecast(lat, lon, days = 7) {
+  if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) {
+    throw new Error('Invalid coordinates provided')
+  }
+
   const cacheKey = getCacheKey(lat, lon, days)
   const cached = getCachedData(cacheKey)
   if (cached) return cached

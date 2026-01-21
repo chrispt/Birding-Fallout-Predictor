@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { weatherApi } from '../services/api'
+import { fetchWeatherForecast } from '../services/weatherApi'
 
 export function useWeather(lat, lon, days = 7) {
   const [forecasts, setForecasts] = useState([])
@@ -13,10 +13,10 @@ export function useWeather(lat, lon, days = 7) {
     setError(null)
 
     try {
-      const response = await weatherApi.getForecast(lat, lon, days)
-      setForecasts(response.data.forecasts)
+      const data = await fetchWeatherForecast(lat, lon, days)
+      setForecasts(data)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to fetch weather data')
+      setError(err.message || 'Failed to fetch weather data')
       setForecasts([])
     } finally {
       setLoading(false)
@@ -41,10 +41,11 @@ export function useCurrentWeather(lat, lon) {
     async function fetch() {
       setLoading(true)
       try {
-        const response = await weatherApi.getCurrent(lat, lon)
-        setWeather(response.data.weather)
+        const data = await fetchWeatherForecast(lat, lon, 1)
+        // Get the current hour's weather (first entry)
+        setWeather(data[0] || null)
       } catch (err) {
-        setError(err.response?.data?.detail || 'Failed to fetch current weather')
+        setError(err.message || 'Failed to fetch current weather')
       } finally {
         setLoading(false)
       }

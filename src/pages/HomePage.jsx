@@ -5,15 +5,7 @@ import WeatherPanel from '../components/weather/WeatherPanel'
 import { usePredictions } from '../hooks/usePredictions'
 import { useCurrentWeather } from '../hooks/useWeather'
 import { formatCoords } from '../utils/formatting'
-
-// Sample fallout hotspots for demonstration
-const SAMPLE_HOTSPOTS = [
-  { name: 'High Island, TX', lat: 29.5647, lon: -94.3912, description: 'Premier Gulf Coast fallout site' },
-  { name: 'Point Pelee, ON', lat: 41.96, lon: -82.52, description: 'Great Lakes migration funnel' },
-  { name: 'Cape May, NJ', lat: 38.93, lon: -74.91, description: 'Atlantic coast concentration point' },
-  { name: 'Dauphin Island, AL', lat: 30.25, lon: -88.11, description: 'Gulf Coast barrier island' },
-  { name: 'South Padre Island, TX', lat: 26.10, lon: -97.17, description: 'Lower Texas coast stopover' }
-]
+import { FALLOUT_HOTSPOTS } from '../services/hotspots'
 
 function HomePage() {
   const [selectedLocation, setSelectedLocation] = useState(null)
@@ -56,7 +48,7 @@ function HomePage() {
           <div className="mt-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Quick Access - Known Fallout Sites</h3>
             <div className="flex flex-wrap gap-2">
-              {SAMPLE_HOTSPOTS.map((hotspot) => (
+              {FALLOUT_HOTSPOTS.map((hotspot) => (
                 <button
                   key={hotspot.name}
                   onClick={() => handleHotspotClick(hotspot)}

@@ -3,7 +3,10 @@
     "allow": [
       "Bash(dir:*)",
       "Bash(powershell:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nRestructure for Vercel deployment\n\n- Move backend to Vercel serverless functions \\(api/\\)\n- Flatten frontend to root level \\(src/\\)\n- Add vercel.json configuration\n- Update API endpoints for serverless architecture\n- Remove FastAPI/PostgreSQL backend \\(replaced with serverless\\)\n- Add static hotspot data for known fallout sites\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix Vercel deployment - remove requirements.txt\n\n- Consolidate all code into single serverless function files\n- Remove _utils folder and requirements.txt \\(use only stdlib\\)\n- Simplify API handlers for Vercel Python runtime\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

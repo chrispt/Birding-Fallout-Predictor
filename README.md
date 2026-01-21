@@ -2,6 +2,8 @@
 
 Predict prime conditions for birding fallouts anywhere in the Lower 48 US States.
 
+**Live Demo**: [Deployed on Vercel](https://your-app.vercel.app)
+
 ## What is a Fallout?
 
 A "fallout" occurs when migrating birds are forced to land due to adverse weather conditions. These events concentrate large numbers of birds in small areas, creating exceptional birding opportunities. Key factors include:
@@ -21,39 +23,16 @@ A "fallout" occurs when migrating birds are forced to land due to adverse weathe
 
 ## Quick Start
 
-### Using Docker (Recommended)
+### Local Development
 
 ```bash
-# Start all services
-docker-compose up -d
-
-# Backend API available at http://localhost:8000
-# API docs at http://localhost:8000/docs
-```
-
-### Manual Setup
-
-#### Backend
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
-pip install -r requirements.txt
-
-# Set up environment
-cp .env.example .env
-# Edit .env with your database settings
-
-# Run the server
-uvicorn app.main:app --reload
-```
-
-#### Frontend
-
-```bash
-cd frontend
+# Install dependencies
 npm install
+
+# Run development server (frontend + API via Vercel dev)
+npx vercel dev
+
+# Or run just the frontend
 npm run dev
 ```
 
@@ -62,34 +41,19 @@ npm run dev
 ### Predictions
 
 ```bash
-# Get 7-day predictions for a location
-GET /api/v1/predictions/location?lat=29.5&lon=-94.5&days=7
-
-# Response:
-{
-  "predictions": [
-    {
-      "prediction_date": "2025-04-15",
-      "overall_score": 72,
-      "score_label": "High",
-      "confidence": "high",
-      "season": "spring",
-      "migration_type": "neotropical",
-      "factors": { ... },
-      "summary": "High fallout potential. Key factors: front passage, precipitation."
-    }
-  ]
-}
+GET /api/predictions?lat=29.5&lon=-94.5&days=7
 ```
 
 ### Weather
 
 ```bash
-# Get current weather
-GET /api/v1/weather/current?lat=29.5&lon=-94.5
+GET /api/weather?lat=29.5&lon=-94.5&days=7
+```
 
-# Get 7-day forecast
-GET /api/v1/weather/forecast?lat=29.5&lon=-94.5&days=7
+### Hotspots
+
+```bash
+GET /api/hotspots
 ```
 
 ## Scoring Algorithm
@@ -114,40 +78,34 @@ GET /api/v1/weather/forecast?lat=29.5&lon=-94.5&days=7
 
 ```
 birding-fallout-predictor/
-├── backend/
-│   ├── app/
-│   │   ├── main.py              # FastAPI app
-│   │   ├── config.py            # Settings
-│   │   ├── database.py          # DB connection
-│   │   ├── models/              # SQLAlchemy models
-│   │   ├── services/
-│   │   │   ├── prediction_engine.py  # Core algorithm
-│   │   │   └── weather_service.py    # Open-Meteo client
-│   │   └── api/routes/          # API endpoints
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── pages/               # React pages
-│   │   ├── components/          # UI components
-│   │   ├── hooks/               # React hooks
-│   │   └── services/            # API client
-│   └── package.json
-└── docker-compose.yml
+├── api/                          # Vercel serverless functions
+│   ├── predictions.py            # Prediction endpoint
+│   ├── weather.py                # Weather endpoint
+│   ├── hotspots.py               # Hotspot data
+│   └── _utils/                   # Shared Python modules
+│       ├── prediction_engine.py  # Core scoring algorithm
+│       └── weather_service.py    # Open-Meteo client
+├── src/                          # React frontend
+│   ├── pages/
+│   ├── components/
+│   ├── hooks/
+│   └── services/
+├── index.html
+├── package.json
+├── vite.config.js
+└── vercel.json
 ```
 
 ## Tech Stack
 
-- **Backend**: Python, FastAPI, SQLAlchemy, PostgreSQL
+- **Hosting**: Vercel (frontend + serverless functions)
 - **Frontend**: React, Vite, Leaflet, Recharts, Tailwind CSS
+- **Backend**: Python serverless functions
 - **Weather Data**: Open-Meteo API (free, no key required)
 
-## Next Steps
+## Deployment
 
-1. **Database Setup**: Run migrations to create tables
-2. **eBird Integration**: Add hotspot data from eBird API
-3. **Historical Data**: Correlate past observations with weather
-4. **CLI Tool**: Command-line interface for predictions
-5. **Alerts**: Email/webhook notifications for high scores
+Push to GitHub and connect to Vercel for automatic deployments.
 
 ## License
 

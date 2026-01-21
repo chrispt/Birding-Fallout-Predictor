@@ -2,6 +2,7 @@ import { useState } from 'react'
 import FalloutMap from '../components/map/FalloutMap'
 import PredictionCard from '../components/predictions/PredictionCard'
 import WeatherPanel from '../components/weather/WeatherPanel'
+import SuggestedSitesPanel from '../components/hotspots/SuggestedSitesPanel'
 import { usePredictions } from '../hooks/usePredictions'
 import { useCurrentWeather } from '../hooks/useWeather'
 import { formatCoords } from '../utils/formatting'
@@ -64,6 +65,12 @@ function HomePage() {
 
         {/* Sidebar */}
         <div className="space-y-4">
+          {/* Suggested sites panel */}
+          <SuggestedSitesPanel
+            onSiteSelect={handleLocationSelect}
+            limit={5}
+          />
+
           {/* Location info */}
           {selectedLocation && (
             <div className="bg-blue-50 rounded-lg p-3">

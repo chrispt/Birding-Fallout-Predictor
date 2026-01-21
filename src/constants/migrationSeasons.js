@@ -73,6 +73,131 @@ export function isInPeakMigration(date = new Date()) {
   return monthDay >= season.peakWeeks.start && monthDay <= season.peakWeeks.end
 }
 
+// Season start dates (month-day format, 1-indexed months)
+const SEASON_DATES = {
+  spring: { start: { month: 3, day: 1 }, end: { month: 5, day: 31 } },
+  summer: { start: { month: 6, day: 1 }, end: { month: 7, day: 31 } },
+  fall: { start: { month: 8, day: 1 }, end: { month: 11, day: 30 } },
+  winter: { start: { month: 12, day: 1 }, end: { month: 2, day: 28 } }
+}
+
+// Get date for a season boundary in the appropriate year
+function getSeasonDate(seasonKey, boundary, referenceDate) {
+  const dates = SEASON_DATES[seasonKey]
+  if (!dates) return null
+
+  const { month, day } = dates[boundary]
+  const year = referenceDate.getFullYear()
+
+  // Handle winter which spans years
+  if (seasonKey === 'winter' && boundary === 'end') {
+    return new Date(year + 1, month - 1, day)
+  }
+  if (seasonKey === 'winter' && boundary === 'start' && referenceDate.getMonth() < 2) {
+    return new Date(year - 1, month - 1, day)
+  }
+
+  return new Date(year, month - 1, day)
+}
+
+// Calculate days between two dates
+function daysBetween(date1, date2) {
+  const oneDay = 24 * 60 * 60 * 1000
+  return Math.round((date2 - date1) / oneDay)
+}
+
+// Get countdown information for migration seasons
+export function getMigrationCountdown(date = new Date()) {
+  const currentSeason = getMigrationSeason(date)
+  const year = date.getFullYear()
+
+  // Define key dates for this year
+  const springStart = new Date(year, 2, 1)   // March 1
+  const springPeakStart = new Date(year, 3, 15) // April 15
+  const springPeakEnd = new Date(year, 4, 15)   // May 15
+  const springEnd = new Date(year, 4, 31)    // May 31
+
+  const fallStart = new Date(year, 7, 1)     // August 1
+  const fallPeakStart = new Date(year, 8, 15)   // September 15
+  const fallPeakEnd = new Date(year, 9, 31)     // October 31
+  const fallEnd = new Date(year, 10, 30)     // November 30
+
+  // Next year's spring for winter countdown
+  const nextSpringStart = new Date(year + 1, 2, 1)
+
+  const countdowns = []
+
+  if (currentSeason.key === 'winter') {
+    // Count down to spring migration
+    const daysToSpring = daysBetween(date, date.getMonth() >= 11 ? nextSpringStart : springStart)
+    countdowns.push({
+      label: 'Spring Migration begins',
+      days: daysToSpring,
+      type: 'upcoming',
+      season: 'spring'
+    })
+  } else if (currentSeason.key === 'summer') {
+    // Count down to fall migration
+    const daysToFall = daysBetween(date, fallStart)
+    countdowns.push({
+      label: 'Fall Migration begins',
+      days: daysToFall,
+      type: 'upcoming',
+      season: 'fall'
+    })
+  } else if (currentSeason.key === 'spring') {
+    // Show days until peak or days remaining in peak/season
+    const isPeak = isInPeakMigration(date)
+    if (date < springPeakStart) {
+      countdowns.push({
+        label: 'Peak migration begins',
+        days: daysBetween(date, springPeakStart),
+        type: 'upcoming',
+        season: 'spring'
+      })
+    } else if (isPeak) {
+      countdowns.push({
+        label: 'Peak migration remaining',
+        days: daysBetween(date, springPeakEnd),
+        type: 'remaining',
+        season: 'spring'
+      })
+    }
+    countdowns.push({
+      label: 'Spring Migration ends',
+      days: daysBetween(date, springEnd),
+      type: 'ends',
+      season: 'spring'
+    })
+  } else if (currentSeason.key === 'fall') {
+    // Show days until peak or days remaining in peak/season
+    const isPeak = isInPeakMigration(date)
+    if (date < fallPeakStart) {
+      countdowns.push({
+        label: 'Peak migration begins',
+        days: daysBetween(date, fallPeakStart),
+        type: 'upcoming',
+        season: 'fall'
+      })
+    } else if (isPeak) {
+      countdowns.push({
+        label: 'Peak migration remaining',
+        days: daysBetween(date, fallPeakEnd),
+        type: 'remaining',
+        season: 'fall'
+      })
+    }
+    countdowns.push({
+      label: 'Fall Migration ends',
+      days: daysBetween(date, fallEnd),
+      type: 'ends',
+      season: 'fall'
+    })
+  }
+
+  return countdowns
+}
+
 // Get display status for UI
 export function getMigrationStatus(date = new Date()) {
   const season = getMigrationSeason(date)

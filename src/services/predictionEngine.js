@@ -1,4 +1,5 @@
 // Client-side prediction engine
+import { getMigrationSeason, isInPeakMigration, SEASONAL_MULTIPLIERS } from '../constants/migrationSeasons'
 
 const CORRIDORS = {
   gulf_coast: { lat_min: 25, lat_max: 31, lon_min: -98, lon_max: -80 },
@@ -147,6 +148,8 @@ export function generatePredictions(forecasts, lat, lon) {
   for (const [dateStr, dayForecasts] of Object.entries(daily).sort()) {
     const forecastDate = new Date(dateStr)
     const { season, type: migrationType } = getSeason(forecastDate)
+    const migrationInfo = getMigrationSeason(forecastDate)
+    const isPeakMigration = isInPeakMigration(forecastDate)
 
     // Find the forecast with most significant weather
     const best = dayForecasts.reduce((a, b) => {
@@ -163,20 +166,36 @@ export function generatePredictions(forecasts, lat, lon) {
 
     const rawScore = front.score + wind.score + precip.score + pressure.score + visibility.score
 
-    let multiplier = 1.0
-    if (corridor === 'gulf_coast' && season === 'spring') multiplier = 1.2
-    else if (corridor === 'atlantic' && season === 'fall') multiplier = 1.15
+    // Apply corridor multiplier
+    let corridorMultiplier = 1.0
+    if (corridor === 'gulf_coast' && season === 'spring') corridorMultiplier = 1.2
+    else if (corridor === 'atlantic' && season === 'fall') corridorMultiplier = 1.15
 
-    const finalScore = Math.min(Math.round(rawScore * multiplier), 100)
+    // Apply seasonal multiplier - suppresses scores outside migration
+    const seasonalMultiplier = SEASONAL_MULTIPLIERS[season] || 1.0
+
+    // Peak migration bonus
+    const peakBonus = isPeakMigration ? 1.1 : 1.0
+
+    const finalScore = Math.min(Math.round(rawScore * corridorMultiplier * seasonalMultiplier * peakBonus), 100)
 
     const forecastTime = new Date(best.forecast_time)
     const hoursAhead = (forecastTime - now) / (1000 * 60 * 60)
     const confidence = hoursAhead <= 24 ? 'high' : hoursAhead <= 72 ? 'medium' : 'low'
 
     const label = getLabel(finalScore)
-    const summary = finalScore >= 60
-      ? `${label} fallout potential.`
-      : `${label} conditions.`
+
+    // Generate contextual summary based on season
+    let summary
+    if (!migrationInfo.isActiveMigration) {
+      summary = `Off-season - ${label.toLowerCase()} weather but fallouts unlikely.`
+    } else if (finalScore >= 60) {
+      summary = isPeakMigration
+        ? `Peak migration! ${label} fallout potential.`
+        : `${label} fallout potential.`
+    } else {
+      summary = `${label} conditions.`
+    }
 
     results.push({
       prediction_date: dateStr,
@@ -185,6 +204,9 @@ export function generatePredictions(forecasts, lat, lon) {
       confidence,
       season,
       migration_type: migrationType,
+      is_active_migration: migrationInfo.isActiveMigration,
+      is_peak_migration: isPeakMigration,
+      migration_label: migrationInfo.label,
       factors: {
         front,
         wind,

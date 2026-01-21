@@ -4,6 +4,7 @@ import FalloutMap from '../components/map/FalloutMap'
 import PredictionCard from '../components/predictions/PredictionCard'
 import WeatherPanel from '../components/weather/WeatherPanel'
 import SuggestedSitesPanel from '../components/hotspots/SuggestedSitesPanel'
+import MigrationStatusBanner from '../components/common/MigrationStatusBanner'
 import { usePredictions } from '../hooks/usePredictions'
 import { useCurrentWeather } from '../hooks/useWeather'
 import { formatCoords } from '../utils/formatting'
@@ -43,6 +44,11 @@ function HomePage() {
         <p className="text-gray-600 mt-1">
           Click anywhere on the map to get a 7-day fallout prediction
         </p>
+      </div>
+
+      {/* Migration Status Banner */}
+      <div className="mb-6">
+        <MigrationStatusBanner />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

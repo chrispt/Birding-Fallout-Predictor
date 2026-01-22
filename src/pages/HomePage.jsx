@@ -5,6 +5,7 @@ import PredictionCard from '../components/predictions/PredictionCard'
 import WeatherPanel from '../components/weather/WeatherPanel'
 import SuggestedSitesPanel from '../components/hotspots/SuggestedSitesPanel'
 import MigrationStatusBanner from '../components/common/MigrationStatusBanner'
+import FeedbackModal from '../components/common/FeedbackModal'
 import { usePredictions } from '../hooks/usePredictions'
 import { useCurrentWeather } from '../hooks/useWeather'
 import { formatCoords } from '../utils/formatting'
@@ -32,6 +33,7 @@ function HomePage() {
 
   const [geoLoading, setGeoLoading] = useState(false)
   const [geoError, setGeoError] = useState(null)
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
 
   // Handle navigation from Trip Planner with location state
   useEffect(() => {
@@ -119,6 +121,13 @@ function HomePage() {
           <Link to="/learn" className="text-blue-600 hover:text-blue-800 hover:underline">
             Learn how fallouts work
           </Link>
+          {' | '}
+          <button
+            onClick={() => setFeedbackModalOpen(true)}
+            className="text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            Give Feedback
+          </button>
         </p>
       </div>
 
@@ -274,6 +283,12 @@ function HomePage() {
           </div>
         )}
       </div>
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+      />
     </div>
   )
 }

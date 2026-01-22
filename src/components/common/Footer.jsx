@@ -76,6 +76,16 @@ function Footer() {
                   Cornell Lab of Ornithology
                 </a>
               </li>
+              <li>
+                <a
+                  href="https://github.com/chrispt/Birding-Fallout-Predictor/issues"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300"
+                >
+                  Report an Issue
+                </a>
+              </li>
             </ul>
           </div>
         </div>

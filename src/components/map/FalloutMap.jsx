@@ -167,7 +167,7 @@ function FalloutMap({
               <Popup>
                 <div>
                   <strong>{sanitizeForHtml(hotspot.name)}</strong>
-                  <p style="font-size: 12px; color: #6b7280; margin: 4px 0 0 0;">
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
                     {sanitizeForHtml(state)}
                     {hotspot.description ? ` - ${sanitizeForHtml(hotspot.description)}` : ''}
                   </p>

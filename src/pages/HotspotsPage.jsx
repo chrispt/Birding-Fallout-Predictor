@@ -70,6 +70,10 @@ function HotspotsPage() {
     atlantic: 'Atlantic Coast',
     greatlakes: 'Great Lakes',
     central: 'Central Flyway',
+    raptor: 'Raptor Watch Sites',
+    shorebird: 'Shorebird Sites',
+    waterfowl: 'Waterfowl Spectacles',
+    western: 'Western Sites',
     custom: 'My Locations',
     ebird: 'eBird Search'
   }

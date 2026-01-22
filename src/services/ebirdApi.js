@@ -1,11 +1,18 @@
 // eBird API integration for fetching hotspots
 // API documentation: https://documenter.getpostman.com/view/664302/S1ENwy59
 
+import { getEbirdApiKey } from './apiKeyStorage'
+
 const EBIRD_API_URL = 'https://api.ebird.org/v2'
 const REQUEST_TIMEOUT_MS = 10000
 
-// Get API key from environment variable
+// Get API key - user's key takes priority, then falls back to environment variable
 function getApiKey() {
+  // First check for user-provided key
+  const userKey = getEbirdApiKey()
+  if (userKey) return userKey
+
+  // Fall back to environment variable
   return import.meta.env.VITE_EBIRD_API_KEY || ''
 }
 
@@ -30,9 +37,19 @@ async function fetchWithTimeout(url, options = {}) {
   }
 }
 
-// Check if eBird API is configured
+// Check if eBird API is configured (either user key or env key)
 export function isEbirdConfigured() {
   return !!getApiKey()
+}
+
+// Check if user has provided their own API key
+export function hasUserApiKey() {
+  return !!getEbirdApiKey()
+}
+
+// Check if only using the default/environment API key
+export function isUsingDefaultApiKey() {
+  return !getEbirdApiKey() && !!import.meta.env.VITE_EBIRD_API_KEY
 }
 
 // Fetch hotspots near a location

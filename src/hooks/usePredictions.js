@@ -9,7 +9,13 @@ export function usePredictions(lat, lon, days = 7) {
   const [error, setError] = useState(null)
 
   const fetchPredictions = useCallback(async () => {
-    if (lat === null || lon === null) return
+    // Clear state when no location selected
+    if (lat == null || lon == null) {
+      setPredictions([])
+      setError(null)
+      setLoading(false)
+      return
+    }
 
     setLoading(true)
     setError(null)

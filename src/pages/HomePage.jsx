@@ -57,6 +57,7 @@ function HomePage() {
           <FalloutMap
             selectedLocation={selectedLocation}
             onLocationSelect={handleLocationSelect}
+            hotspots={FALLOUT_HOTSPOTS}
             height="400px"
           />
 

@@ -139,39 +139,43 @@ function FalloutMap({
           </Marker>
         ))}
 
-        {/* Hotspot markers */}
-        {hotspots.map((hotspot) => (
-          <Marker
-            key={hotspot.ebird_loc_id}
-            position={[hotspot.latitude, hotspot.longitude]}
-            icon={L.divIcon({
-              className: 'hotspot-marker',
-              html: `<div style="
-                background-color: ${hotspot.is_fallout_site ? '#9333ea' : '#6b7280'};
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-                border: 2px solid white;
-              "></div>`,
-              iconSize: [12, 12],
-              iconAnchor: [6, 6]
-            })}
-          >
-            <Popup>
-              <div>
-                <strong>{hotspot.name}</strong>
-                {hotspot.is_fallout_site && (
-                  <span className="ml-2 text-xs bg-purple-100 text-purple-800 px-1 rounded">
-                    Fallout Site
-                  </span>
-                )}
-                <p className="text-sm text-gray-600">
-                  {hotspot.state_code}
-                </p>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {/* Hotspot markers - supports both lat/lon and latitude/longitude formats */}
+        {hotspots.map((hotspot, index) => {
+          const lat = hotspot.lat ?? hotspot.latitude
+          const lon = hotspot.lon ?? hotspot.longitude
+          const state = hotspot.state ?? hotspot.state_code
+          const isFalloutSite = hotspot.is_fallout_site ?? hotspot.region != null
+
+          return (
+            <Marker
+              key={hotspot.ebird_loc_id || hotspot.name || index}
+              position={[lat, lon]}
+              icon={L.divIcon({
+                className: 'hotspot-marker',
+                html: `<div style="
+                  background-color: ${isFalloutSite ? '#9333ea' : '#6b7280'};
+                  width: 10px;
+                  height: 10px;
+                  border-radius: 50%;
+                  border: 2px solid white;
+                  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                "></div>`,
+                iconSize: [10, 10],
+                iconAnchor: [5, 5]
+              })}
+            >
+              <Popup>
+                <div>
+                  <strong>{sanitizeForHtml(hotspot.name)}</strong>
+                  <p style="font-size: 12px; color: #6b7280; margin: 4px 0 0 0;">
+                    {sanitizeForHtml(state)}
+                    {hotspot.description ? ` - ${sanitizeForHtml(hotspot.description)}` : ''}
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
+          )
+        })}
       </MapContainer>
     </div>
   )

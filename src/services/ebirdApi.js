@@ -76,6 +76,12 @@ export async function fetchNearbyHotspots(lat, lon, distKm = 50, maxResults = 50
     if (response.status === 403) {
       throw new Error('Invalid eBird API key')
     }
+    if (response.status === 429) {
+      throw new Error('eBird API rate limit exceeded - please wait a moment and try again')
+    }
+    if (response.status >= 500) {
+      throw new Error('eBird API is temporarily unavailable - please try again later')
+    }
     throw new Error(`eBird API error: ${response.status}`)
   }
 
@@ -115,6 +121,12 @@ export async function fetchRegionHotspots(regionCode, maxResults = 100) {
   if (!response.ok) {
     if (response.status === 403) {
       throw new Error('Invalid eBird API key')
+    }
+    if (response.status === 429) {
+      throw new Error('eBird API rate limit exceeded - please wait a moment and try again')
+    }
+    if (response.status >= 500) {
+      throw new Error('eBird API is temporarily unavailable - please try again later')
     }
     throw new Error(`eBird API error: ${response.status}`)
   }

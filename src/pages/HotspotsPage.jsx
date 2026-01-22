@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react'
+import { useState, useEffect, useMemo, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useHotspots } from '../hooks/useHotspots'
 import { getRegions, getStates } from '../services/hotspots'
@@ -12,6 +12,7 @@ function HotspotsPage() {
   const [selectedState, setSelectedState] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [lastEbirdSearch, setLastEbirdSearch] = useState('')
 
   const {
     hotspots,
@@ -31,12 +32,15 @@ function HotspotsPage() {
     includeEbird: true
   })
 
-  // Filter by search query
-  const filteredHotspots = hotspots.filter(h =>
-    h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    h.state?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    h.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Filter by search query - memoized to avoid recalculating on every render
+  const filteredHotspots = useMemo(() => {
+    const query = searchQuery.toLowerCase()
+    return hotspots.filter(h =>
+      h.name.toLowerCase().includes(query) ||
+      h.state?.toLowerCase().includes(query) ||
+      h.description?.toLowerCase().includes(query)
+    )
+  }, [hotspots, searchQuery])
 
   const handleSelectLocation = (hotspot) => {
     navigate('/', { state: { lat: hotspot.lat, lon: hotspot.lon } })
@@ -44,9 +48,17 @@ function HotspotsPage() {
 
   const handleEbirdSearch = async (regionCode) => {
     if (regionCode) {
+      setLastEbirdSearch(regionCode)
       await searchByRegion(regionCode)
     } else {
+      setLastEbirdSearch('')
       clearEbirdResults()
+    }
+  }
+
+  const handleRetryEbirdSearch = () => {
+    if (lastEbirdSearch) {
+      searchByRegion(lastEbirdSearch)
     }
   }
 
@@ -114,8 +126,9 @@ function HotspotsPage() {
           {/* Filters */}
           <div className="flex flex-wrap gap-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Region</label>
+              <label htmlFor="filter-region" className="block text-sm font-medium text-gray-700 mb-1">Region</label>
               <select
+                id="filter-region"
                 value={selectedRegion}
                 onChange={(e) => { setSelectedRegion(e.target.value); setSelectedState('all'); }}
                 className="border border-gray-300 rounded-md px-3 py-2 text-sm"
@@ -127,8 +140,9 @@ function HotspotsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+              <label htmlFor="filter-state" className="block text-sm font-medium text-gray-700 mb-1">State</label>
               <select
+                id="filter-state"
                 value={selectedState}
                 onChange={(e) => { setSelectedState(e.target.value); setSelectedRegion('all'); }}
                 className="border border-gray-300 rounded-md px-3 py-2 text-sm"
@@ -140,8 +154,9 @@ function HotspotsPage() {
               </select>
             </div>
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+              <label htmlFor="filter-search" className="block text-sm font-medium text-gray-700 mb-1">Search</label>
               <input
+                id="filter-search"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -227,10 +242,11 @@ function HotspotsPage() {
           ) : (
             <div>
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="ebird-state-search" className="block text-sm font-medium text-gray-700 mb-1">
                   Search eBird hotspots by state
                 </label>
                 <select
+                  id="ebird-state-search"
                   onChange={(e) => handleEbirdSearch(e.target.value)}
                   className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                 >
@@ -249,8 +265,16 @@ function HotspotsPage() {
               )}
 
               {error && (
-                <div className="bg-red-50 text-red-700 rounded-lg p-4 mb-4">
-                  {error}
+                <div className="bg-red-50 text-red-700 rounded-lg p-4 mb-4 flex items-center justify-between">
+                  <span>{error}</span>
+                  {lastEbirdSearch && (
+                    <button
+                      onClick={handleRetryEbirdSearch}
+                      className="ml-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      Try Again
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -356,10 +380,122 @@ function AddLocationModal({ onClose, onAdd }) {
   const [state, setState] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  // Coordinate regex: optional negative, digits, optional decimal with up to 6 places
+  const coordRegex = /^-?\d+(\.\d{1,6})?$/
+
+  // Real-time validation for individual fields
+  const validateField = (field, value) => {
+    const errors = { ...fieldErrors }
+
+    switch (field) {
+      case 'name':
+        if (value.length > 100) {
+          errors.name = 'Name must be 100 characters or less'
+        } else if (value.trim() === '') {
+          errors.name = 'Name is required'
+        } else {
+          delete errors.name
+        }
+        break
+      case 'lat':
+        if (value && !coordRegex.test(value)) {
+          errors.lat = 'Invalid format (e.g., 29.5647)'
+        } else {
+          const num = parseFloat(value)
+          if (value && (isNaN(num) || num < -90 || num > 90)) {
+            errors.lat = 'Must be between -90 and 90'
+          } else {
+            delete errors.lat
+          }
+        }
+        break
+      case 'lon':
+        if (value && !coordRegex.test(value)) {
+          errors.lon = 'Invalid format (e.g., -94.3912)'
+        } else {
+          const num = parseFloat(value)
+          if (value && (isNaN(num) || num < -180 || num > 180)) {
+            errors.lon = 'Must be between -180 and 180'
+          } else {
+            delete errors.lon
+          }
+        }
+        break
+      case 'state':
+        if (value.length > 50) {
+          errors.state = 'State must be 50 characters or less'
+        } else {
+          delete errors.state
+        }
+        break
+      case 'description':
+        if (value.length > 200) {
+          errors.description = 'Description must be 200 characters or less'
+        } else {
+          delete errors.description
+        }
+        break
+    }
+
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  // Handle input changes with validation
+  const handleNameChange = (e) => {
+    const value = e.target.value.slice(0, 100) // Enforce max length
+    setName(value)
+    validateField('name', value)
+  }
+
+  const handleLatChange = (e) => {
+    setLat(e.target.value)
+    validateField('lat', e.target.value)
+  }
+
+  const handleLonChange = (e) => {
+    setLon(e.target.value)
+    validateField('lon', e.target.value)
+  }
+
+  const handleStateChange = (e) => {
+    const value = e.target.value.slice(0, 50)
+    setState(value)
+    validateField('state', value)
+  }
+
+  const handleDescriptionChange = (e) => {
+    const value = e.target.value.slice(0, 200)
+    setDescription(value)
+    validateField('description', value)
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
     setError('')
+
+    // Validate all fields on submit
+    const nameValid = validateField('name', name)
+    const latValid = validateField('lat', lat)
+    const lonValid = validateField('lon', lon)
+
+    if (!nameValid || !latValid || !lonValid || Object.keys(fieldErrors).length > 0) {
+      setError('Please fix the errors above')
+      return
+    }
 
     const latNum = parseFloat(lat)
     const lonNum = parseFloat(lon)
@@ -368,11 +504,11 @@ function AddLocationModal({ onClose, onAdd }) {
       setError('Name is required')
       return
     }
-    if (isNaN(latNum) || latNum < -90 || latNum > 90) {
+    if (!lat || isNaN(latNum) || latNum < -90 || latNum > 90) {
       setError('Invalid latitude (must be -90 to 90)')
       return
     }
-    if (isNaN(lonNum) || lonNum < -180 || lonNum > 180) {
+    if (!lon || isNaN(lonNum) || lonNum < -180 || lonNum > 180) {
       setError('Invalid longitude (must be -180 to 180)')
       return
     }
@@ -380,8 +516,8 @@ function AddLocationModal({ onClose, onAdd }) {
     try {
       onAdd({
         name: name.trim(),
-        lat: latNum,
-        lon: lonNum,
+        lat: parseFloat(latNum.toFixed(6)), // Limit to 6 decimal places
+        lon: parseFloat(lonNum.toFixed(6)),
         state: state.trim(),
         description: description.trim()
       })
@@ -397,69 +533,104 @@ function AddLocationModal({ onClose, onAdd }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="location-name" className="block text-sm font-medium text-gray-700 mb-1">
               Location Name *
             </label>
             <input
+              id="location-name"
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={handleNameChange}
               placeholder="e.g., My Backyard"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              maxLength={100}
+              className={`w-full border rounded-md px-3 py-2 ${
+                fieldErrors.name ? 'border-red-500' : 'border-gray-300'
+              }`}
             />
+            {fieldErrors.name && (
+              <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>
+            )}
+            <p className="text-xs text-gray-400 mt-1">{name.length}/100</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="location-lat" className="block text-sm font-medium text-gray-700 mb-1">
                 Latitude *
               </label>
               <input
+                id="location-lat"
                 type="text"
                 value={lat}
-                onChange={(e) => setLat(e.target.value)}
+                onChange={handleLatChange}
                 placeholder="e.g., 29.5647"
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                className={`w-full border rounded-md px-3 py-2 ${
+                  fieldErrors.lat ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
+              {fieldErrors.lat && (
+                <p className="text-xs text-red-600 mt-1">{fieldErrors.lat}</p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="location-lon" className="block text-sm font-medium text-gray-700 mb-1">
                 Longitude *
               </label>
               <input
+                id="location-lon"
                 type="text"
                 value={lon}
-                onChange={(e) => setLon(e.target.value)}
+                onChange={handleLonChange}
                 placeholder="e.g., -94.3912"
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                className={`w-full border rounded-md px-3 py-2 ${
+                  fieldErrors.lon ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
+              {fieldErrors.lon && (
+                <p className="text-xs text-red-600 mt-1">{fieldErrors.lon}</p>
+              )}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="location-state" className="block text-sm font-medium text-gray-700 mb-1">
               State/Province
             </label>
             <input
+              id="location-state"
               type="text"
               value={state}
-              onChange={(e) => setState(e.target.value)}
+              onChange={handleStateChange}
               placeholder="e.g., TX"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              maxLength={50}
+              className={`w-full border rounded-md px-3 py-2 ${
+                fieldErrors.state ? 'border-red-500' : 'border-gray-300'
+              }`}
             />
+            {fieldErrors.state && (
+              <p className="text-xs text-red-600 mt-1">{fieldErrors.state}</p>
+            )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="location-description" className="block text-sm font-medium text-gray-700 mb-1">
               Description
             </label>
             <input
+              id="location-description"
               type="text"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={handleDescriptionChange}
               placeholder="e.g., Great for warblers"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              maxLength={200}
+              className={`w-full border rounded-md px-3 py-2 ${
+                fieldErrors.description ? 'border-red-500' : 'border-gray-300'
+              }`}
             />
+            {fieldErrors.description && (
+              <p className="text-xs text-red-600 mt-1">{fieldErrors.description}</p>
+            )}
+            <p className="text-xs text-gray-400 mt-1">{description.length}/200</p>
           </div>
 
           {error && (
@@ -509,6 +680,16 @@ function ApiKeySettings() {
       setApiKey(existingKey)
     }
   }, [])
+
+  // Auto-dismiss success and info messages after 5 seconds
+  useEffect(() => {
+    if (message.type === 'success' || message.type === 'info') {
+      const timer = setTimeout(() => {
+        setMessage({ type: '', text: '' })
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [message])
 
   const handleSaveKey = async () => {
     if (!apiKey.trim()) {
@@ -567,7 +748,9 @@ function ApiKeySettings() {
 
       <div className="flex gap-2">
         <div className="flex-1 relative">
+          <label htmlFor="ebird-api-key" className="sr-only">eBird API Key</label>
           <input
+            id="ebird-api-key"
             type={showKey ? 'text' : 'password'}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}

@@ -1,12 +1,16 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { fetchWeatherForecast } from '../services/weatherApi'
 import { generatePredictions } from '../services/predictionEngine'
 import { FALLOUT_HOTSPOTS } from '../services/hotspots'
 
+const SLOW_LOADING_THRESHOLD_MS = 10000 // 10 seconds
+
 export function usePredictions(lat, lon, days = 7) {
   const [predictions, setPredictions] = useState([])
   const [loading, setLoading] = useState(false)
+  const [loadingSlow, setLoadingSlow] = useState(false)
   const [error, setError] = useState(null)
+  const slowTimerRef = useRef(null)
 
   const fetchPredictions = useCallback(async () => {
     // Clear state when no location selected
@@ -14,11 +18,19 @@ export function usePredictions(lat, lon, days = 7) {
       setPredictions([])
       setError(null)
       setLoading(false)
+      setLoadingSlow(false)
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
       return
     }
 
     setLoading(true)
+    setLoadingSlow(false)
     setError(null)
+
+    // Start slow loading timer
+    slowTimerRef.current = setTimeout(() => {
+      setLoadingSlow(true)
+    }, SLOW_LOADING_THRESHOLD_MS)
 
     try {
       const forecasts = await fetchWeatherForecast(lat, lon, days)
@@ -29,15 +41,24 @@ export function usePredictions(lat, lon, days = 7) {
       setPredictions([])
     } finally {
       setLoading(false)
+      setLoadingSlow(false)
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
     }
   }, [lat, lon, days])
 
   useEffect(() => {
     fetchPredictions()
+    return () => {
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
+    }
   }, [fetchPredictions])
 
-  return { predictions, loading, error, refetch: fetchPredictions }
+  return { predictions, loading, loadingSlow, error, refetch: fetchPredictions }
 }
+
+// Maximum number of hotspots to fetch to reduce API calls
+// Prioritizes Gulf Coast locations during migration season
+const MAX_HOTSPOTS_TO_FETCH = 15
 
 export function useTopPredictions(date, limit = 10) {
   const [predictions, setPredictions] = useState([])
@@ -50,9 +71,13 @@ export function useTopPredictions(date, limit = 10) {
       setError(null)
 
       try {
-        // Fetch predictions for all hotspots in parallel
+        // Limit hotspots fetched to reduce API calls (from 48+ to 15)
+        // Hotspots are already sorted by priority in the static data
+        const hotspotsToFetch = FALLOUT_HOTSPOTS.slice(0, MAX_HOTSPOTS_TO_FETCH)
+
+        // Fetch predictions for limited hotspots in parallel
         const results = await Promise.all(
-          FALLOUT_HOTSPOTS.map(async (hotspot) => {
+          hotspotsToFetch.map(async (hotspot) => {
             const forecasts = await fetchWeatherForecast(hotspot.lat, hotspot.lon, 7)
             const preds = generatePredictions(forecasts, hotspot.lat, hotspot.lon)
             // Find prediction for requested date

@@ -1,9 +1,10 @@
+import { memo } from 'react'
 import ScoreGauge from './ScoreGauge'
 import FactorBreakdown from './FactorBreakdown'
 import { formatDate } from '../../utils/formatting'
 import { getScoreClass } from '../../utils/colors'
 
-function PredictionCard({ prediction, expanded = false }) {
+const PredictionCard = memo(function PredictionCard({ prediction, expanded = false }) {
   const {
     prediction_date,
     overall_score,
@@ -86,6 +87,6 @@ function PredictionCard({ prediction, expanded = false }) {
       )}
     </div>
   )
-}
+})
 
 export default PredictionCard

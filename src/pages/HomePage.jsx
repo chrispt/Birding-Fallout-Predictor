@@ -10,9 +10,25 @@ import { useCurrentWeather } from '../hooks/useWeather'
 import { formatCoords } from '../utils/formatting'
 import { FALLOUT_HOTSPOTS } from '../services/hotspots'
 
+const LOCATION_STORAGE_KEY = 'bfp_selected_location'
+
 function HomePage() {
   const location = useLocation()
-  const [selectedLocation, setSelectedLocation] = useState(null)
+  const [selectedLocation, setSelectedLocation] = useState(() => {
+    // Initialize from localStorage on first render
+    try {
+      const stored = localStorage.getItem(LOCATION_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (typeof parsed.lat === 'number' && typeof parsed.lon === 'number') {
+          return parsed
+        }
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    return null
+  })
 
   // Handle navigation from Trip Planner with location state
   useEffect(() => {
@@ -20,9 +36,21 @@ function HomePage() {
       setSelectedLocation({ lat: location.state.lat, lon: location.state.lon })
     }
   }, [location.state])
+
+  // Persist selected location to localStorage
+  useEffect(() => {
+    if (selectedLocation) {
+      try {
+        localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(selectedLocation))
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }, [selectedLocation])
+
   const [expandedPrediction, setExpandedPrediction] = useState(null)
 
-  const { predictions, loading: predictionsLoading, error: predictionsError } =
+  const { predictions, loading: predictionsLoading, loadingSlow, error: predictionsError, refetch: refetchPredictions } =
     usePredictions(selectedLocation?.lat, selectedLocation?.lon)
 
   const { weather, loading: weatherLoading } =
@@ -115,19 +143,32 @@ function HomePage() {
         )}
 
         {predictionsLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-lg shadow p-4 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+          <div>
+            {loadingSlow && (
+              <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-700 text-sm">
+                Taking longer than expected... Please wait, weather data is being fetched.
               </div>
-            ))}
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white rounded-lg shadow p-4 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {predictionsError && (
-          <div className="bg-red-50 text-red-700 rounded-lg p-4">
-            Error: {predictionsError}
+          <div className="bg-red-50 text-red-700 rounded-lg p-4 flex items-center justify-between">
+            <span>Error: {predictionsError}</span>
+            <button
+              onClick={refetchPredictions}
+              className="ml-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg transition-colors text-sm font-medium"
+            >
+              Try Again
+            </button>
           </div>
         )}
 

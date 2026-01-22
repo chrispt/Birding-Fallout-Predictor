@@ -3,6 +3,7 @@
 const OPEN_METEO_URL = 'https://api.open-meteo.com/v1/forecast'
 const REQUEST_TIMEOUT_MS = 10000
 const CACHE_TTL_MS = 15 * 60 * 1000 // 15 minutes
+const MAX_CACHE_ENTRIES = 100 // Limit cache size to prevent memory issues
 
 const HOURLY_VARIABLES = [
   'temperature_2m',
@@ -38,6 +39,12 @@ function getCachedData(key) {
 }
 
 function setCachedData(key, data) {
+  // Enforce cache size limit with LRU eviction
+  if (weatherCache.size >= MAX_CACHE_ENTRIES) {
+    // Find oldest entry (first entry in Map iteration order)
+    const oldestKey = weatherCache.keys().next().value
+    weatherCache.delete(oldestKey)
+  }
   weatherCache.set(key, { data, timestamp: Date.now() })
 }
 

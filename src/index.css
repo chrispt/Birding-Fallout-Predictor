@@ -5,7 +5,7 @@
 :root {
   --score-low: #4CAF50;
   --score-moderate: #8BC34A;
-  --score-elevated: #FFEB3B;
+  --score-elevated: #FBC02D;
   --score-high: #FF9800;
   --score-exceptional: #F44336;
 }
@@ -23,9 +23,9 @@ body {
   width: 100%;
 }
 
-/* Score badge colors */
-.score-low { background-color: var(--score-low); }
-.score-moderate { background-color: var(--score-moderate); }
-.score-elevated { background-color: var(--score-elevated); color: #333; }
-.score-high { background-color: var(--score-high); }
-.score-exceptional { background-color: var(--score-exceptional); }
+/* Score badge colors - WCAG AA compliant text contrast */
+.score-low { background-color: var(--score-low); color: #FFFFFF; }
+.score-moderate { background-color: var(--score-moderate); color: #1A1A1A; }
+.score-elevated { background-color: var(--score-elevated); color: #1A1A1A; }
+.score-high { background-color: var(--score-high); color: #1A1A1A; }
+.score-exceptional { background-color: var(--score-exceptional); color: #FFFFFF; }

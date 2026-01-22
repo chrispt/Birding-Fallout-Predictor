@@ -9,7 +9,8 @@ function Header() {
     { path: '/', label: 'Dashboard' },
     { path: '/planner', label: 'Trip Planner' },
     { path: '/hotspots', label: 'Hotspots' },
-    { path: '/map', label: 'Map' }
+    { path: '/map', label: 'Map' },
+    { path: '/learn', label: 'Learn' }
   ]
 
   return (

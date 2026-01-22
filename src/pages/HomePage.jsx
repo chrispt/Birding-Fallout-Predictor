@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
 import FalloutMap from '../components/map/FalloutMap'
 import PredictionCard from '../components/predictions/PredictionCard'
 import WeatherPanel from '../components/weather/WeatherPanel'
@@ -70,7 +70,10 @@ function HomePage() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Birding Fallout Predictor</h1>
         <p className="text-gray-600 mt-1">
-          Click anywhere on the map to get a 7-day fallout prediction
+          Click anywhere on the map to get a 7-day fallout prediction.{' '}
+          <Link to="/learn" className="text-blue-600 hover:text-blue-800 hover:underline">
+            Learn how fallouts work
+          </Link>
         </p>
       </div>
 

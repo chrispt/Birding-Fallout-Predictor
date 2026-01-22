@@ -9,6 +9,7 @@ const HomePage = lazy(() => import('./pages/HomePage'))
 const MapPage = lazy(() => import('./pages/MapPage'))
 const TripPlannerPage = lazy(() => import('./pages/TripPlannerPage'))
 const HotspotsPage = lazy(() => import('./pages/HotspotsPage'))
+const LearnPage = lazy(() => import('./pages/LearnPage'))
 
 // Loading fallback component
 function PageLoader() {
@@ -34,6 +35,7 @@ function App() {
               <Route path="/map" element={<MapPage />} />
               <Route path="/planner" element={<TripPlannerPage />} />
               <Route path="/hotspots" element={<HotspotsPage />} />
+              <Route path="/learn" element={<LearnPage />} />
             </Routes>
           </Suspense>
         </main>

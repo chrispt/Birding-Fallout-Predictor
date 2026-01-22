@@ -21,7 +21,7 @@ function HomePage() {
       if (stored) {
         const parsed = JSON.parse(stored)
         if (typeof parsed.lat === 'number' && typeof parsed.lon === 'number') {
-          return parsed
+          return parsed // Will include name if it was stored
         }
       }
     } catch {
@@ -29,6 +29,9 @@ function HomePage() {
     }
     return null
   })
+
+  const [geoLoading, setGeoLoading] = useState(false)
+  const [geoError, setGeoError] = useState(null)
 
   // Handle navigation from Trip Planner with location state
   useEffect(() => {
@@ -56,13 +59,55 @@ function HomePage() {
   const { weather, loading: weatherLoading } =
     useCurrentWeather(selectedLocation?.lat, selectedLocation?.lon)
 
-  const handleLocationSelect = (lat, lon) => {
-    setSelectedLocation({ lat, lon })
+  const handleLocationSelect = (lat, lon, name = null) => {
+    setSelectedLocation(name ? { lat, lon, name } : { lat, lon })
     setExpandedPrediction(null)
+    setGeoError(null)
   }
 
   const handleHotspotClick = (hotspot) => {
-    handleLocationSelect(hotspot.lat, hotspot.lon)
+    setSelectedLocation({ lat: hotspot.lat, lon: hotspot.lon, name: hotspot.name })
+    setExpandedPrediction(null)
+    setGeoError(null)
+  }
+
+  const handleGeolocation = () => {
+    if (!navigator.geolocation) {
+      setGeoError('Geolocation is not supported by your browser')
+      return
+    }
+
+    setGeoLoading(true)
+    setGeoError(null)
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setSelectedLocation({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+          name: 'My Location'
+        })
+        setExpandedPrediction(null)
+        setGeoLoading(false)
+      },
+      (error) => {
+        setGeoLoading(false)
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setGeoError('Location permission denied')
+            break
+          case error.POSITION_UNAVAILABLE:
+            setGeoError('Location unavailable')
+            break
+          case error.TIMEOUT:
+            setGeoError('Location request timed out')
+            break
+          default:
+            setGeoError('Unable to get location')
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    )
   }
 
   return (
@@ -80,6 +125,36 @@ function HomePage() {
       {/* Migration Status Banner */}
       <div className="mb-6">
         <MigrationStatusBanner />
+      </div>
+
+      {/* Use My Location Button */}
+      <div className="mb-4 flex items-center gap-3">
+        <button
+          onClick={handleGeolocation}
+          disabled={geoLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors"
+        >
+          {geoLoading ? (
+            <>
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span>Getting location...</span>
+            </>
+          ) : (
+            <>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>Use My Location</span>
+            </>
+          )}
+        </button>
+        {geoError && (
+          <span className="text-red-600 text-sm">{geoError}</span>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -122,9 +197,14 @@ function HomePage() {
           {selectedLocation && (
             <div className="bg-blue-50 rounded-lg p-3">
               <h3 className="text-sm font-medium text-blue-800">Selected Location</h3>
-              <p className="text-sm text-blue-600">
-                {formatCoords(selectedLocation.lat, selectedLocation.lon)}
+              <p className="text-sm text-blue-600 font-medium">
+                {selectedLocation.name || formatCoords(selectedLocation.lat, selectedLocation.lon)}
               </p>
+              {selectedLocation.name && (
+                <p className="text-xs text-blue-500 mt-0.5">
+                  {formatCoords(selectedLocation.lat, selectedLocation.lon)}
+                </p>
+              )}
             </div>
           )}
 

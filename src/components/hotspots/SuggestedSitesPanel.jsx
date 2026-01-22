@@ -24,7 +24,7 @@ function SuggestedSitesPanel({ onSiteSelect, limit = 5 }) {
 
   const handleSiteClick = (site) => {
     if (onSiteSelect) {
-      onSiteSelect(site.lat, site.lon)
+      onSiteSelect(site.lat, site.lon, site.hotspot_name)
     }
   }
 

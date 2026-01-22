@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLocation, Link } from 'react-router-dom'
 import FalloutMap from '../components/map/FalloutMap'
 import PredictionCard from '../components/predictions/PredictionCard'
@@ -34,6 +34,35 @@ function HomePage() {
   const [geoLoading, setGeoLoading] = useState(false)
   const [geoError, setGeoError] = useState(null)
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
+  const [expandedRegions, setExpandedRegions] = useState([])
+
+  // Region labels and grouping for Quick Access
+  const regionLabels = {
+    gulf: 'Gulf Coast',
+    greatlakes: 'Great Lakes',
+    atlantic: 'Atlantic Coast',
+    central: 'Central Flyway',
+    raptor: 'Raptor Watch Sites',
+    shorebird: 'Shorebird Sites',
+    waterfowl: 'Waterfowl Spectacles',
+    western: 'Western Sites'
+  }
+
+  const hotspotsByRegion = useMemo(() => {
+    return FALLOUT_HOTSPOTS.reduce((acc, h) => {
+      if (!acc[h.region]) acc[h.region] = []
+      acc[h.region].push(h)
+      return acc
+    }, {})
+  }, [])
+
+  const toggleRegion = (region) => {
+    setExpandedRegions(prev =>
+      prev.includes(region)
+        ? prev.filter(r => r !== region)
+        : [...prev, region]
+    )
+  }
 
   // Handle navigation from Trip Planner with location state
   useEffect(() => {
@@ -176,20 +205,49 @@ function HomePage() {
             height="400px"
           />
 
-          {/* Quick access hotspots */}
+          {/* Quick access hotspots - collapsible by region */}
           <div className="mt-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Quick Access - Known Fallout Sites</h3>
-            <div className="flex flex-wrap gap-2">
-              {FALLOUT_HOTSPOTS.map((hotspot) => (
-                <button
-                  key={hotspot.name}
-                  onClick={() => handleHotspotClick(hotspot)}
-                  className="px-3 py-1 text-sm bg-purple-100 text-purple-800 rounded-full hover:bg-purple-200 transition-colors"
-                  title={hotspot.description}
-                >
-                  {hotspot.name}
-                </button>
-              ))}
+            <div className="space-y-1">
+              {Object.keys(regionLabels).map((region) => {
+                const sites = hotspotsByRegion[region] || []
+                if (sites.length === 0) return null
+                const isExpanded = expandedRegions.includes(region)
+                return (
+                  <div key={region} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleRegion(region)}
+                      className="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"
+                    >
+                      <span className="text-sm font-medium text-gray-700">
+                        {regionLabels[region]} ({sites.length})
+                      </span>
+                      <svg
+                        className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {isExpanded && (
+                      <div className="px-3 py-2 bg-white flex flex-wrap gap-2">
+                        {sites.map((hotspot) => (
+                          <button
+                            key={hotspot.name}
+                            onClick={() => handleHotspotClick(hotspot)}
+                            className="px-3 py-1 text-sm bg-purple-100 text-purple-800 rounded-full hover:bg-purple-200 transition-colors"
+                            title={hotspot.description}
+                          >
+                            {hotspot.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>

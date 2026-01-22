@@ -100,10 +100,13 @@ function getSeasonDate(seasonKey, boundary, referenceDate) {
   return new Date(year, month - 1, day)
 }
 
-// Calculate days between two dates
+// Calculate days between two dates (using calendar days, not hours)
 function daysBetween(date1, date2) {
+  // Normalize both dates to midnight for consistent calendar day counting
+  const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate())
+  const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate())
   const oneDay = 24 * 60 * 60 * 1000
-  return Math.round((date2 - date1) / oneDay)
+  return Math.round((d2 - d1) / oneDay)
 }
 
 // Get countdown information for migration seasons

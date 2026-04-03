@@ -59,6 +59,21 @@ export function usePredictions(lat, lon, days = 7) {
 // Maximum number of hotspots to fetch to reduce API calls
 // Prioritizes Gulf Coast locations during migration season
 const MAX_HOTSPOTS_TO_FETCH = 15
+const BATCH_SIZE = 5
+const BATCH_DELAY_MS = 200
+
+async function fetchInBatches(tasks, batchSize = BATCH_SIZE, delayMs = BATCH_DELAY_MS) {
+  const results = []
+  for (let i = 0; i < tasks.length; i += batchSize) {
+    const batch = tasks.slice(i, i + batchSize)
+    const settled = await Promise.allSettled(batch.map(fn => fn()))
+    results.push(...settled)
+    if (i + batchSize < tasks.length) {
+      await new Promise(r => setTimeout(r, delayMs))
+    }
+  }
+  return results
+}
 
 export function useTopPredictions(date, limit = 10) {
   const [predictions, setPredictions] = useState([])
@@ -71,30 +86,47 @@ export function useTopPredictions(date, limit = 10) {
       setError(null)
 
       try {
-        // Limit hotspots fetched to reduce API calls (from 48+ to 15)
-        // Hotspots are already sorted by priority in the static data
         const hotspotsToFetch = FALLOUT_HOTSPOTS.slice(0, MAX_HOTSPOTS_TO_FETCH)
 
-        // Fetch predictions for limited hotspots in parallel
-        const results = await Promise.all(
-          hotspotsToFetch.map(async (hotspot) => {
-            const forecasts = await fetchWeatherForecast(hotspot.lat, hotspot.lon, 7)
-            const preds = generatePredictions(forecasts, hotspot.lat, hotspot.lon)
-            // Find prediction for requested date
-            const pred = preds.find(p => p.prediction_date === date) || preds[0]
-            return {
-              ...pred,
-              hotspot_name: hotspot.name,
-              lat: hotspot.lat,
-              lon: hotspot.lon,
-              state: hotspot.state,
-              description: hotspot.description
-            }
-          })
-        )
+        const tasks = hotspotsToFetch.map((hotspot) => async () => {
+          const forecasts = await fetchWeatherForecast(hotspot.lat, hotspot.lon, 7)
+          const preds = generatePredictions(forecasts, hotspot.lat, hotspot.lon)
+          const pred = preds.find(p => p.prediction_date === date) || preds[0]
+          return {
+            ...pred,
+            hotspot_name: hotspot.name,
+            lat: hotspot.lat,
+            lon: hotspot.lon,
+            state: hotspot.state,
+            description: hotspot.description
+          }
+        })
 
-        // Sort by score descending and take top N
-        const sorted = results
+        const settled = await fetchInBatches(tasks)
+
+        let fulfilled = settled
+          .filter(r => r.status === 'fulfilled')
+          .map(r => r.value)
+
+        // Retry failed requests once
+        const failedIndices = settled
+          .map((r, i) => r.status === 'rejected' ? i : null)
+          .filter(i => i !== null)
+
+        if (failedIndices.length > 0 && fulfilled.length > 0) {
+          const retrySettled = await Promise.allSettled(
+            failedIndices.map(i => tasks[i]())
+          )
+          fulfilled.push(
+            ...retrySettled.filter(r => r.status === 'fulfilled').map(r => r.value)
+          )
+        }
+
+        if (fulfilled.length === 0) {
+          throw new Error('All weather requests failed')
+        }
+
+        const sorted = fulfilled
           .sort((a, b) => b.overall_score - a.overall_score)
           .slice(0, limit)
 
